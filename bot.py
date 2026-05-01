@@ -303,7 +303,6 @@ async def on_language(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     lang = {"lang_ru": "ru", "lang_uz": "uz", "lang_kk": "kk"}.get(q.data, "ru")
     ctx.user_data["lang"] = lang
     user_languages[uid] = lang
-    await q.edit_message_text(T(lang, "menu"))
     await q.message.reply_text(T(lang, "menu"), reply_markup=menu_kb(lang))
     return MENU
 
