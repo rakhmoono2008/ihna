@@ -318,14 +318,16 @@ async def on_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg)
         return MENU
 
-    # Strip emoji prefix for comparison
-    clean = text.lstrip("✍️📋📜🌐 ").strip()
+    btn_new   = T(lang, "btn_new")
+    btn_my    = T(lang, "btn_my")
+    btn_rules = T(lang, "btn_rules")
+    btn_lang  = T(lang, "btn_lang")
 
-    if clean == T(lang, "btn_new"):
+    if btn_new in text:
         await update.message.reply_text(T(lang, "choose_contact"), reply_markup=contact_kb(lang))
         return CONTACT
 
-    if clean == T(lang, "btn_my"):
+    if btn_my in text:
         user_appeals = [(k, v) for k, v in appeals_db.items() if v["user_id"] == uid]
         if not user_appeals:
             await update.message.reply_text(T(lang, "no_appeals"))
@@ -346,11 +348,11 @@ async def on_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(msg)
         return MENU
 
-    if clean == T(lang, "btn_rules"):
+    if btn_rules in text:
         await update.message.reply_text(T(lang, "rules"))
         return MENU
 
-    if clean == T(lang, "btn_lang"):
+    if btn_lang in text:
         await update.message.reply_text(TEXTS["ru"]["welcome"], reply_markup=lang_kb())
         return LANGUAGE
 
