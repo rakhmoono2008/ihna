@@ -15,8 +15,12 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8239199632:AAGF3i4Qsswck4WEhaeLqHNvGBgE1bb2uVw")
-ADMIN_ID  = int(os.environ.get("ADMIN_ID", "0"))
-GROUP_ID  = int(os.environ.get("GROUP_ID", "0"))
+ADMIN_ID   = int(os.environ.get("ADMIN_ID", "0"))
+ADMIN_ID_2 = int(os.environ.get("ADMIN_ID_2", "0"))
+GROUP_ID   = int(os.environ.get("GROUP_ID", "0"))
+
+def is_admin(uid):
+    return uid == ADMIN_ID or (ADMIN_ID_2 and uid == ADMIN_ID_2)
 
 LANGUAGE, MENU, CONTACT, REGION, APPEAL, VOL_TYPE, VOL_CONTACT, VOL_REGION = range(8)
 
@@ -317,7 +321,7 @@ def admin_chat_kb(uid):
 # ─── Helpers ─────────────────────────────────────────────────────
 
 async def send_to_targets(bot, caption, media_ids, kb):
-    targets = [t for t in [ADMIN_ID, GROUP_ID] if t]
+    targets = [t for t in [ADMIN_ID, ADMIN_ID_2, GROUP_ID] if t]
     send_map = {"photo": bot.send_photo, "video": bot.send_video, "document": bot.send_document}
     for target in targets:
         try:
@@ -378,10 +382,11 @@ async def on_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if end_btn in text:
             user_chat_mode.pop(uid, None)
             # Notify admin
-            if ADMIN_ID in admin_chat_target and admin_chat_target[ADMIN_ID] == uid:
-                admin_chat_target.pop(ADMIN_ID, None)
+            admin_uid_key = next((k for k, v in admin_chat_target.items() if v == uid), None)
+            if admin_uid_key:
+                admin_chat_target.pop(admin_uid_key, None)
                 try:
-                    await ctx.bot.send_message(ADMIN_ID, T("ru", "chat_ended_a"))
+                    await ctx.bot.send_message(admin_uid_key, T("ru", "chat_ended_a"))
                 except Exception: pass
             await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
             return MENU
@@ -628,7 +633,7 @@ async def do_submit(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
-    if q.from_user.id != ADMIN_ID:
+    if not is_admin(q.from_user.id):
         await q.answer("Нет доступа", show_alert=True)
         return
     await q.answer()
@@ -639,7 +644,7 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parts = data.split("_")
         aid   = int(parts[1])
         uid   = int(parts[2])
-        pending_reply[ADMIN_ID] = {"appeal_id": aid, "user_id": uid}
+        pending_reply[q.from_user.id] = {"appeal_id": aid, "user_id": uid}
         await q.message.reply_text(f"✏️ Напишите ответ на обращение #{aid}:")
         return
 
@@ -647,7 +652,7 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("chat_open_"):
         uid = int(data.split("_")[2])
         # FIX: close previous chat if any before opening new one
-        admin_chat_target[ADMIN_ID] = uid
+        admin_chat_target[q.from_user.id] = uid
         user_chat_mode[uid] = True
         lang = user_languages.get(uid, "ru")
         try:
@@ -664,8 +669,9 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("chat_end_"):
         uid = int(data.split("_")[2])
         user_chat_mode.pop(uid, None)
-        if admin_chat_target.get(ADMIN_ID) == uid:
-            admin_chat_target.pop(ADMIN_ID, None)
+        admin_uid_key = next((k for k, v in admin_chat_target.items() if v == uid), None)
+        if admin_uid_key:
+            admin_chat_target.pop(admin_uid_key, None)
         lang = user_languages.get(uid, "ru")
         try:
             await ctx.bot.send_message(uid, T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
@@ -702,13 +708,14 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Admin typing → goes to active chat user OR as appeal reply"""
     uid = update.effective_user.id
-    if uid != ADMIN_ID:
+    if not is_admin(uid):
         return
     text = update.message.text or ""
 
     # Active direct chat takes priority
-    if ADMIN_ID in admin_chat_target:
-        target_uid = admin_chat_target[ADMIN_ID]
+    admin_uid = uid
+    if admin_uid in admin_chat_target:
+        target_uid = admin_chat_target[admin_uid]
         user_lang  = user_languages.get(target_uid, "ru")
         try:
             await ctx.bot.send_message(target_uid, T(user_lang, "admin_wrote").format(text=text))
@@ -717,16 +724,16 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Admin chat send failed: {e}")
             await update.message.reply_text("❌ Не удалось отправить.")
         # Also save as reply if pending
-        if ADMIN_ID in pending_reply:
-            info = pending_reply.pop(ADMIN_ID)
+        if admin_uid in pending_reply:
+            info = pending_reply.pop(admin_uid)
             aid  = info["appeal_id"]
             if aid in appeals_db:
                 appeals_db[aid]["replies"].append(text)
         return
 
     # No active chat — check pending reply
-    if ADMIN_ID in pending_reply:
-        info       = pending_reply.pop(ADMIN_ID)
+    if admin_uid in pending_reply:
+        info       = pending_reply.pop(admin_uid)
         aid        = info["appeal_id"]
         target_uid = info["user_id"]
         user_lang  = appeals_db.get(aid, {}).get("lang", user_languages.get(target_uid, "ru"))
@@ -780,7 +787,7 @@ def main():
     ))
     if ADMIN_ID:
         app.add_handler(MessageHandler(
-            filters.TEXT & ~filters.COMMAND & filters.User(ADMIN_ID),
+            filters.TEXT & ~filters.COMMAND & (filters.User(ADMIN_ID) | (filters.User(ADMIN_ID_2) if ADMIN_ID_2 else filters.User(ADMIN_ID))),
             on_admin_message
         ))
     app.add_error_handler(on_error)
