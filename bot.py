@@ -8,8 +8,7 @@ from telegram import (
 )
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
-    MessageHandler, filters, ContextTypes, ConversationHandler,
-    ApplicationHandlerStop
+    MessageHandler, filters, ContextTypes, ConversationHandler
 )
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -779,7 +778,6 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Reply send failed: {e}")
             await update.message.reply_text("❌ Не удалось отправить.")
-    raise ApplicationHandlerStop
 
 
 async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -817,8 +815,7 @@ async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await ctx.bot.send_message(a, f"Пользователь {user_name} отменил запрос на чат.")
                 except Exception: pass
         await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
-        raise ApplicationHandlerStop
-
+    
     # If user is only waiting (no admin accepted yet) — forward as new message
     if uid in chat_waiting:
         for a in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
@@ -856,7 +853,6 @@ async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Chat broadcast failed: {e}")
-    raise ApplicationHandlerStop  # prevent conversation from re-handling
 
 
 async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
@@ -889,26 +885,28 @@ def main():
         allow_reentry=True,
     )
 
-    # group=-2: admin messages (highest priority)
+    app.add_handler(conv)
+    app.add_handler(CallbackQueryHandler(
+        on_admin_callback,
+        pattern="^(arep_|chat_accept_|chat_open_|chat_end_|block_)"
+    ))
+
+    # group=1: runs AFTER conversation (conv handles /start, menu etc)
+    # Admin messages handler
     admin_filter = filters.User(ADMIN_ID)
     if ADMIN_ID_2:
         admin_filter = admin_filter | filters.User(ADMIN_ID_2)
     app.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND & admin_filter,
         on_admin_message
-    ), group=-2)
+    ), group=1)
 
-    # group=-1: user chat messages (before conversation)
+    # group=1: user chat handler (also after conv, but conv returns MENU for chat users)
     app.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND,
         user_chat_message
-    ), group=-1)
+    ), group=1)
 
-    app.add_handler(conv)
-    app.add_handler(CallbackQueryHandler(
-        on_admin_callback,
-        pattern="^(arep_|chat_accept_|chat_open_|chat_end_|block_)"
-    ))
     app.add_error_handler(on_error)
 
     logger.info("Bot running...")
