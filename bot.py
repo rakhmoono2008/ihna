@@ -8,7 +8,8 @@ from telegram import (
 )
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
-    MessageHandler, filters, ContextTypes, ConversationHandler
+    MessageHandler, filters, ContextTypes, ConversationHandler,
+    ApplicationHandlerStop
 )
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -778,6 +779,7 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Reply send failed: {e}")
             await update.message.reply_text("❌ Не удалось отправить.")
+    raise ApplicationHandlerStop
 
 
 async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -815,7 +817,7 @@ async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await ctx.bot.send_message(a, f"Пользователь {user_name} отменил запрос на чат.")
                 except Exception: pass
         await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
-        return
+        raise ApplicationHandlerStop
 
     # If user is only waiting (no admin accepted yet) — forward as new message
     if uid in chat_waiting:
@@ -854,6 +856,7 @@ async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Chat broadcast failed: {e}")
+    raise ApplicationHandlerStop  # prevent conversation from re-handling
 
 
 async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
@@ -886,20 +889,19 @@ def main():
         allow_reentry=True,
     )
 
-    # group=-1 runs BEFORE ConversationHandler
-    # Intercept user chat messages before conversation handles them
-    app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        user_chat_message
-    ), group=-1)
-
-    # Admin messages intercepted with correct user filter
+    # group=-2: admin messages (highest priority)
     admin_filter = filters.User(ADMIN_ID)
     if ADMIN_ID_2:
         admin_filter = admin_filter | filters.User(ADMIN_ID_2)
     app.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND & admin_filter,
         on_admin_message
+    ), group=-2)
+
+    # group=-1: user chat messages (before conversation)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        user_chat_message
     ), group=-1)
 
     app.add_handler(conv)
