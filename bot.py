@@ -390,15 +390,30 @@ async def on_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 except Exception: pass
             await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
             return MENU
-        # Forward message to admin
-        try:
-            await ctx.bot.send_message(
-                ADMIN_ID,
-                f"[Чат от {update.effective_user.full_name} | {uid}]\n{text}",
-                reply_markup=admin_chat_kb(uid)
-            )
-        except Exception as e:
-            logger.error(f"Chat forward failed: {e}")
+        # Forward message to admin(s) who have active chat with this user
+        sent = False
+        for admin_uid, target_uid in admin_chat_target.items():
+            if target_uid == uid:
+                try:
+                    await ctx.bot.send_message(
+                        admin_uid,
+                        f"💬 [{update.effective_user.full_name}]:\n{text}",
+                        reply_markup=admin_chat_kb(uid)
+                    )
+                    sent = True
+                except Exception as e:
+                    logger.error(f"Chat forward failed: {e}")
+        # If no admin has active chat open, send to all admins
+        if not sent:
+            for admin_uid in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
+                try:
+                    await ctx.bot.send_message(
+                        admin_uid,
+                        f"💬 [Чат от {update.effective_user.full_name} | {uid}]:\n{text}",
+                        reply_markup=admin_chat_kb(uid)
+                    )
+                except Exception as e:
+                    logger.error(f"Chat broadcast failed: {e}")
         return MENU
 
     if T(lang, "btn_new") in text:
@@ -750,6 +765,52 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Не удалось отправить.")
 
 
+async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Catches messages from users who are in chat mode, regardless of conv state."""
+    uid = update.effective_user.id
+    # Skip admins — they have their own handler
+    if is_admin(uid):
+        return
+    if uid not in user_chat_mode:
+        return
+    lang = get_lang(uid)
+    text = update.message.text or ""
+    end_btn = "🔚 " + T(lang, "chat_end_btn")
+    if end_btn in text:
+        user_chat_mode.pop(uid, None)
+        admin_uid_key = next((k for k, v in admin_chat_target.items() if v == uid), None)
+        if admin_uid_key:
+            admin_chat_target.pop(admin_uid_key, None)
+            try:
+                await ctx.bot.send_message(admin_uid_key, T("ru", "chat_ended_a"))
+            except Exception: pass
+        await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
+        return
+    # Forward to admin(s)
+    sent = False
+    for admin_uid, target_uid in list(admin_chat_target.items()):
+        if target_uid == uid:
+            try:
+                await ctx.bot.send_message(
+                    admin_uid,
+                    f"💬 [{update.effective_user.full_name}]:\n{text}",
+                    reply_markup=admin_chat_kb(uid)
+                )
+                sent = True
+            except Exception as e:
+                logger.error(f"Chat forward failed: {e}")
+    if not sent:
+        for admin_uid in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
+            try:
+                await ctx.bot.send_message(
+                    admin_uid,
+                    f"💬 [Чат от {update.effective_user.full_name} | {uid}]:\n{text}",
+                    reply_markup=admin_chat_kb(uid)
+                )
+            except Exception as e:
+                logger.error(f"Chat broadcast failed: {e}")
+
+
 async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
     logger.error("Error:", exc_info=ctx.error)
 
@@ -780,16 +841,27 @@ def main():
         allow_reentry=True,
     )
 
+    # group=-1 runs BEFORE ConversationHandler
+    # Intercept user chat messages before conversation handles them
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        user_chat_message
+    ), group=-1)
+
+    # Admin messages intercepted with correct user filter
+    admin_filter = filters.User(ADMIN_ID)
+    if ADMIN_ID_2:
+        admin_filter = admin_filter | filters.User(ADMIN_ID_2)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & admin_filter,
+        on_admin_message
+    ), group=-1)
+
     app.add_handler(conv)
     app.add_handler(CallbackQueryHandler(
         on_admin_callback,
         pattern="^(arep_|chat_open_|chat_end_|block_)"
     ))
-    if ADMIN_ID:
-        app.add_handler(MessageHandler(
-            filters.TEXT & ~filters.COMMAND & (filters.User(ADMIN_ID) | (filters.User(ADMIN_ID_2) if ADMIN_ID_2 else filters.User(ADMIN_ID))),
-            on_admin_message
-        ))
     app.add_error_handler(on_error)
 
     logger.info("Bot running...")
