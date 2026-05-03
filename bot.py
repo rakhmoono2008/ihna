@@ -28,9 +28,10 @@ blocked_users     = {}
 user_languages    = {}
 appeals_db        = {}
 appeal_counter    = [0]
-admin_chat_target = {}   # ADMIN_ID -> uid
-user_chat_mode    = {}   # uid -> True
-pending_reply     = {}   # ADMIN_ID -> {appeal_id, user_id}
+admin_chat_target = {}   # admin_uid -> user_uid  (active chat)
+user_chat_mode    = {}   # user_uid -> True  (user in chat)
+chat_waiting      = {}   # user_uid -> True  (waiting for admin to accept)
+pending_reply     = {}   # admin_uid -> {appeal_id, user_id}
 
 REGIONS = [
     "Toshkent shahri / г. Ташкент", "Toshkent viloyati / Ташкентская обл.",
@@ -63,12 +64,17 @@ TEXTS = {
         "vol_phone_ask":  "Оставьте ваш номер телефона, чтобы мы могли с вами связаться:",
         "vol_phone_btn":  "📱 Поделиться номером",
         "vol_sent":       "Ваша заявка волонтёра отправлена!\n\nМы свяжемся с вами в ближайшее время. Спасибо!",
-        "chat_started_u": "Вы начали прямой чат. Напишите ваш вопрос.\nДля завершения нажмите кнопку ниже.",
+        "chat_waiting":   "⏳ Ваш запрос отправлен. Ожидайте — администратор скоро подключится.",
+        "chat_started_u": "✅ Администратор подключился к чату. Напишите ваш вопрос.\nДля завершения нажмите кнопку ниже.",
         "chat_end_btn":   "🔚 Завершить чат",
-        "chat_ended_u":   "Чат завершён. Возвращаемся в меню.",
-        "chat_ended_a":   "Пользователь завершил чат.",
-        "admin_chat_open":"Чат открыт с пользователем {uid}.\nВсё что пишете — уходит ему напрямую.",
+        "chat_ended_u":   "Чат завершён. Спасибо за обращение! Возвращаемся в меню.",
+        "chat_ended_u_by_admin": "Администратор завершил чат. Возвращаемся в меню.",
+        "chat_ended_a":   "✅ Чат с пользователем {name} завершён.",
+        "chat_ended_a_by_user": "Пользователь {name} завершил чат.",
+        "admin_chat_open":"💬 Чат с {name} открыт.\nВсё что пишете — уходит пользователю напрямую.",
         "admin_chat_end_btn": "🔚 Завершить чат с пользователем",
+        "admin_accept_btn": "✅ Принять чат",
+        "admin_new_chat": "💬 Новый запрос на чат от {name}:\n\n{text}",
         "choose_contact": "Хотите оставить свой номер телефона?\n\nВнимание: Если останетесь анонимным — мы не сможем связаться с вами.",
         "share_phone":    "📱 Поделиться номером",
         "stay_anon":      "🙈 Остаться анонимным",
@@ -116,12 +122,17 @@ TEXTS = {
         "vol_phone_ask":  "Biz siz bilan bog'lanishimiz uchun telefon raqamingizni qoldiring:",
         "vol_phone_btn":  "📱 Raqamni ulashish",
         "vol_sent":       "Volontyorlik arizangiz yuborildi!\n\nTez orada siz bilan bog'lanamiz. Rahmat!",
-        "chat_started_u": "To'g'ridan-to'g'ri chat boshlandi. Savolingizni yozing.\nYakunlash uchun tugmani bosing.",
+        "chat_waiting":   "⏳ So'rovingiz yuborildi. Kuting — administrator tez orada ulanadi.",
+        "chat_started_u": "✅ Administrator chatga ulandi. Savolingizni yozing.\nYakunlash uchun tugmani bosing.",
         "chat_end_btn":   "🔚 Chatni yakunlash",
-        "chat_ended_u":   "Chat yakunlandi. Menyuga qaytamiz.",
-        "chat_ended_a":   "Foydalanuvchi chatni yakunladi.",
-        "admin_chat_open":"Foydalanuvchi {uid} bilan chat ochildi.\nYozgan xabarlaringiz unga boradi.",
+        "chat_ended_u":   "Chat yakunlandi. Murojaat uchun rahmat! Menyuga qaytamiz.",
+        "chat_ended_u_by_admin": "Administrator chatni yakunladi. Menyuga qaytamiz.",
+        "chat_ended_a":   "✅ {name} bilan chat yakunlandi.",
+        "chat_ended_a_by_user": "Foydalanuvchi {name} chatni yakunladi.",
+        "admin_chat_open":"💬 {name} bilan chat ochildi.\nYozgan xabarlaringiz unga boradi.",
         "admin_chat_end_btn": "🔚 Foydalanuvchi bilan chatni yakunlash",
+        "admin_accept_btn": "✅ Chatni qabul qilish",
+        "admin_new_chat": "💬 {name} dan yangi chat so'rovi:\n\n{text}",
         "choose_contact": "Telefon raqamingizni qoldirmoqchimisiz?\n\nDiqqat: Anonim qolsangiz — biz siz bilan bog'lana olmaymiz.",
         "share_phone":    "📱 Raqamni ulashish",
         "stay_anon":      "🙈 Anonim qolish",
@@ -169,12 +180,17 @@ TEXTS = {
         "vol_phone_ask":  "Biz siz benen baylanısıwımız ushın telefon nomernizdi qaldırın:",
         "vol_phone_btn":  "📱 Nomerni ulasıw",
         "vol_sent":       "Volonterlik arzañız jiberildi!\n\nTez arada siz benen baylanısadı. Rahmet!",
-        "chat_started_u": "To'g'ridan-to'g'rı chat baslandı. Sawalınızdı jazın.\nTamawlaw ushın tugmasin basın.",
+        "chat_waiting":   "⏳ So'rawınız jiberildi. Kütin — administrator tez arada ulanadı.",
+        "chat_started_u": "✅ Administrator chatqa ulastı. Sawalınızdı jazın.\nTamawlaw ushın tugmasin basın.",
         "chat_end_btn":   "🔚 Chattı tamawlaw",
-        "chat_ended_u":   "Chat tamawlandı. Menyuga qaytamız.",
-        "chat_ended_a":   "Paydalanıwshı chattı tamawladı.",
-        "admin_chat_open":"Paydalanıwshı {uid} benen chat ashıldı.\nJazg'an xabarlarınız uğan baradi.",
+        "chat_ended_u":   "Chat tamawlandı. Rahmet! Menyuga qaytamız.",
+        "chat_ended_u_by_admin": "Administrator chattı tamawladı. Menyuga qaytamız.",
+        "chat_ended_a":   "✅ {name} benen chat tamawlandı.",
+        "chat_ended_a_by_user": "Paydalanıwshı {name} chattı tamawladı.",
+        "admin_chat_open":"💬 {name} benen chat ashıldı.\nJazg'an xabarlarınız uğan baradi.",
         "admin_chat_end_btn": "🔚 Paydalanıwshı benen chattı tamawlaw",
+        "admin_accept_btn": "✅ Chattı qabıl etiw",
+        "admin_new_chat": "💬 {name} dan jana chat so'rawı:\n\n{text}",
         "choose_contact": "Telefon nomernizdi qaldırg'ınız keleme?\n\nDıqqat: Anonim qalsañız — biz siz benen baylanısa almaymız.",
         "share_phone":    "📱 Nomerni ulasıw",
         "stay_anon":      "🙈 Anonim qalıw",
@@ -376,44 +392,8 @@ async def on_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg)
         return MENU
 
-    # User in active chat → forward to admin
-    if uid in user_chat_mode:
-        end_btn = "🔚 " + T(lang, "chat_end_btn")
-        if end_btn in text:
-            user_chat_mode.pop(uid, None)
-            # Notify admin
-            admin_uid_key = next((k for k, v in admin_chat_target.items() if v == uid), None)
-            if admin_uid_key:
-                admin_chat_target.pop(admin_uid_key, None)
-                try:
-                    await ctx.bot.send_message(admin_uid_key, T("ru", "chat_ended_a"))
-                except Exception: pass
-            await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
-            return MENU
-        # Forward message to admin(s) who have active chat with this user
-        sent = False
-        for admin_uid, target_uid in admin_chat_target.items():
-            if target_uid == uid:
-                try:
-                    await ctx.bot.send_message(
-                        admin_uid,
-                        f"💬 [{update.effective_user.full_name}]:\n{text}",
-                        reply_markup=admin_chat_kb(uid)
-                    )
-                    sent = True
-                except Exception as e:
-                    logger.error(f"Chat forward failed: {e}")
-        # If no admin has active chat open, send to all admins
-        if not sent:
-            for admin_uid in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
-                try:
-                    await ctx.bot.send_message(
-                        admin_uid,
-                        f"💬 [Чат от {update.effective_user.full_name} | {uid}]:\n{text}",
-                        reply_markup=admin_chat_kb(uid)
-                    )
-                except Exception as e:
-                    logger.error(f"Chat broadcast failed: {e}")
+    # User in chat/waiting mode — handled by user_chat_message handler (group=-1)
+    if uid in user_chat_mode or uid in chat_waiting:
         return MENU
 
     if T(lang, "btn_new") in text:
@@ -425,15 +405,22 @@ async def on_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return VOL_TYPE
 
     if T(lang, "btn_chat") in text:
-        user_chat_mode[uid] = True
-        await update.message.reply_text(T(lang, "chat_started_u"), reply_markup=user_chat_kb(lang))
-        try:
-            await ctx.bot.send_message(
-                ADMIN_ID,
-                f"[Новый чат от {update.effective_user.full_name} | {uid}]",
-                reply_markup=admin_chat_kb(uid)
-            )
-        except Exception: pass
+        # Put user in waiting mode, not active chat yet
+        chat_waiting[uid] = True
+        await update.message.reply_text(T(lang, "chat_waiting"), reply_markup=user_chat_kb(lang))
+        # Notify all admins with "Accept" button
+        user_name = update.effective_user.full_name
+        for admin_uid in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
+            try:
+                await ctx.bot.send_message(
+                    admin_uid,
+                    T("ru", "admin_new_chat").format(name=user_name, text="(нажмите принять)"),
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(T("ru", "admin_accept_btn"), callback_data=f"chat_accept_{uid}")
+                    ]])
+                )
+            except Exception as e:
+                logger.error(f"Chat notify failed: {e}")
         return MENU
 
     if T(lang, "btn_my") in text:
@@ -663,36 +650,64 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.message.reply_text(f"✏️ Напишите ответ на обращение #{aid}:")
         return
 
-    # ── Open live chat ──
-    if data.startswith("chat_open_"):
+    # ── Accept chat from waiting user ──
+    if data.startswith("chat_accept_"):
         uid = int(data.split("_")[2])
-        # FIX: close previous chat if any before opening new one
-        admin_chat_target[q.from_user.id] = uid
-        user_chat_mode[uid] = True
+        admin_uid = q.from_user.id
+        user_name = (await ctx.bot.get_chat(uid)).full_name
         lang = user_languages.get(uid, "ru")
+        # Move from waiting to active
+        chat_waiting.pop(uid, None)
+        admin_chat_target[admin_uid] = uid
+        user_chat_mode[uid] = True
+        # Notify user that admin joined
         try:
             await ctx.bot.send_message(uid, T(lang, "chat_started_u"), reply_markup=user_chat_kb(lang))
         except Exception as e:
-            logger.error(f"Chat start notify failed: {e}")
+            logger.error(f"Chat accept notify user failed: {e}")
+        # Notify admin
+        await q.edit_message_reply_markup(reply_markup=None)
         await q.message.reply_text(
-            T("ru", "admin_chat_open").format(uid=uid),
+            T("ru", "admin_chat_open").format(name=user_name),
             reply_markup=admin_chat_kb(uid)
         )
         return
 
-    # ── End chat (from inline button in admin's chat) ──
+    # ── Open live chat directly (from appeal button) ──
+    if data.startswith("chat_open_"):
+        uid = int(data.split("_")[2])
+        admin_uid = q.from_user.id
+        user_name = (await ctx.bot.get_chat(uid)).full_name
+        lang = user_languages.get(uid, "ru")
+        chat_waiting.pop(uid, None)
+        admin_chat_target[admin_uid] = uid
+        user_chat_mode[uid] = True
+        try:
+            await ctx.bot.send_message(uid, T(lang, "chat_started_u"), reply_markup=user_chat_kb(lang))
+        except Exception as e:
+            logger.error(f"Chat open notify failed: {e}")
+        await q.message.reply_text(
+            T("ru", "admin_chat_open").format(name=user_name),
+            reply_markup=admin_chat_kb(uid)
+        )
+        return
+
+    # ── End chat (admin presses button) ──
     if data.startswith("chat_end_"):
         uid = int(data.split("_")[2])
-        user_chat_mode.pop(uid, None)
-        admin_uid_key = next((k for k, v in admin_chat_target.items() if v == uid), None)
-        if admin_uid_key:
-            admin_chat_target.pop(admin_uid_key, None)
+        admin_uid = q.from_user.id
+        user_name = (await ctx.bot.get_chat(uid)).full_name
         lang = user_languages.get(uid, "ru")
+        user_chat_mode.pop(uid, None)
+        chat_waiting.pop(uid, None)
+        admin_chat_target.pop(admin_uid, None)
         try:
-            await ctx.bot.send_message(uid, T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
+            await ctx.bot.send_message(uid, T(lang, "chat_ended_u_by_admin"), reply_markup=menu_kb(lang))
         except Exception: pass
-        await q.edit_message_reply_markup(reply_markup=None)
-        await q.message.reply_text("✅ Чат завершён.")
+        try:
+            await q.edit_message_reply_markup(reply_markup=None)
+        except Exception: pass
+        await q.message.reply_text(T("ru", "chat_ended_a").format(name=user_name))
         return
 
     # ── Block ──
@@ -766,49 +781,79 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def user_chat_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Catches messages from users who are in chat mode, regardless of conv state."""
+    """Catches messages from users in chat/waiting mode."""
     uid = update.effective_user.id
-    # Skip admins — they have their own handler
     if is_admin(uid):
         return
-    if uid not in user_chat_mode:
+    # Only handle if user is in chat or waiting
+    if uid not in user_chat_mode and uid not in chat_waiting:
         return
     lang = get_lang(uid)
     text = update.message.text or ""
+    user_name = update.effective_user.full_name
     end_btn = "🔚 " + T(lang, "chat_end_btn")
+
+    # User ends chat
     if end_btn in text:
+        was_active = uid in user_chat_mode
         user_chat_mode.pop(uid, None)
+        chat_waiting.pop(uid, None)
+        # Find admin with this chat
         admin_uid_key = next((k for k, v in admin_chat_target.items() if v == uid), None)
         if admin_uid_key:
             admin_chat_target.pop(admin_uid_key, None)
             try:
-                await ctx.bot.send_message(admin_uid_key, T("ru", "chat_ended_a"))
+                await ctx.bot.send_message(
+                    admin_uid_key,
+                    T("ru", "chat_ended_a_by_user").format(name=user_name)
+                )
             except Exception: pass
+        else:
+            # Notify all admins if no one accepted
+            for a in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
+                try:
+                    await ctx.bot.send_message(a, f"Пользователь {user_name} отменил запрос на чат.")
+                except Exception: pass
         await update.message.reply_text(T(lang, "chat_ended_u"), reply_markup=menu_kb(lang))
         return
-    # Forward to admin(s)
-    sent = False
+
+    # If user is only waiting (no admin accepted yet) — forward as new message
+    if uid in chat_waiting:
+        for a in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
+            try:
+                await ctx.bot.send_message(
+                    a,
+                    T("ru", "admin_new_chat").format(name=user_name, text=text),
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(T("ru", "admin_accept_btn"), callback_data=f"chat_accept_{uid}")
+                    ]])
+                )
+            except Exception as e:
+                logger.error(f"Waiting chat forward failed: {e}")
+        return
+
+    # User is in active chat — forward to the admin who accepted
     for admin_uid, target_uid in list(admin_chat_target.items()):
         if target_uid == uid:
             try:
                 await ctx.bot.send_message(
                     admin_uid,
-                    f"💬 [{update.effective_user.full_name}]:\n{text}",
+                    f"💬 {user_name}:\n{text}",
                     reply_markup=admin_chat_kb(uid)
                 )
-                sent = True
             except Exception as e:
                 logger.error(f"Chat forward failed: {e}")
-    if not sent:
-        for admin_uid in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
-            try:
-                await ctx.bot.send_message(
-                    admin_uid,
-                    f"💬 [Чат от {update.effective_user.full_name} | {uid}]:\n{text}",
-                    reply_markup=admin_chat_kb(uid)
-                )
-            except Exception as e:
-                logger.error(f"Chat broadcast failed: {e}")
+            return
+    # No admin has active session — broadcast
+    for a in [a for a in [ADMIN_ID, ADMIN_ID_2] if a]:
+        try:
+            await ctx.bot.send_message(
+                a,
+                f"💬 {user_name}:\n{text}",
+                reply_markup=admin_chat_kb(uid)
+            )
+        except Exception as e:
+            logger.error(f"Chat broadcast failed: {e}")
 
 
 async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
@@ -860,7 +905,7 @@ def main():
     app.add_handler(conv)
     app.add_handler(CallbackQueryHandler(
         on_admin_callback,
-        pattern="^(arep_|chat_open_|chat_end_|block_)"
+        pattern="^(arep_|chat_accept_|chat_open_|chat_end_|block_)"
     ))
     app.add_error_handler(on_error)
 
