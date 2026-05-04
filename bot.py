@@ -1,7 +1,11 @@
 import os
+import io
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, date
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     ReplyKeyboardMarkup, KeyboardButton,
@@ -449,7 +453,7 @@ async def do_submit(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     date_str    = datetime.now().strftime("%d.%m.%Y %H:%M")
 
     appeals_db[aid] = {
-        "user_id": user.id, "region": region, "contact": contact,
+        "user_id": user.id, "user_name": user.full_name, "region": region, "contact": contact,
         "text": full_text, "media": media_ids, "date": date_str,
         "replies": [], "lang": lang, "appeal_type": appeal_type,
     }
@@ -550,6 +554,171 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(T("ru", "reply_fail"))
 
 
+
+
+def build_excel(appeal_list, title="Отчёт"):
+    """Build Excel file from list of appeals and return as BytesIO."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Обращения"
+
+    # Styles
+    header_font  = Font(bold=True, color="FFFFFF", size=11)
+    header_fill  = PatternFill("solid", fgColor="1F4E79")
+    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left_align   = Alignment(horizontal="left",   vertical="center", wrap_text=True)
+    thin         = Side(style="thin", color="AAAAAA")
+    border       = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    headers = [
+        "№", "ID", "Дата", "Тип обращения", "Регион",
+        "Контакт", "Язык", "Пользователь", "Telegram ID",
+        "Текст обращения", "Ответы"
+    ]
+    col_widths = [5, 7, 18, 28, 30, 18, 12, 22, 14, 50, 40]
+
+    # Header row
+    for col_idx, (h, w) in enumerate(zip(headers, col_widths), 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font        = header_font
+        cell.fill        = header_fill
+        cell.alignment   = center_align
+        cell.border      = border
+        ws.column_dimensions[get_column_letter(col_idx)].width = w
+
+    ws.row_dimensions[1].height = 22
+
+    # Type colors
+    type_colors = {
+        "Цифровизация":          "DDEEFF",
+        "Стимулирование":        "DDFFDD",
+        "Законодательство":      "FFEECC",
+        "Социальные инновации":  "FFDDE8",
+        "Логистика":             "E8DDFF",
+        "Повышение квалификации":"FFFACC",
+        "Другие":                "F0F0F0",
+    }
+
+    lang_names = {"ru": "Русский", "uz": "O'zbek", "kk": "Qaraqalpaqsha"}
+
+    for row_num, (aid, ap) in enumerate(sorted(appeal_list), 1):
+        row = row_num + 1
+        contact = ("+" + ap["contact"]) if ap.get("contact") else "Анонимный"
+        replies = "; ".join(ap.get("replies", [])) if ap.get("replies") else "—"
+        atype   = ap.get("appeal_type", "—")
+
+        # Pick row fill based on type keyword
+        fill_color = "FFFFFF"
+        for keyword, color in type_colors.items():
+            if keyword.lower() in atype.lower():
+                fill_color = color
+                break
+        row_fill = PatternFill("solid", fgColor=fill_color)
+
+        values = [
+            row_num,
+            "#" + str(aid),
+            ap.get("date", ""),
+            atype,
+            ap.get("region", ""),
+            contact,
+            lang_names.get(ap.get("lang", "ru"), "Русский"),
+            ap.get("user_name", "—"),
+            str(ap.get("user_id", "")),
+            ap.get("text", "") or "—",
+            replies,
+        ]
+        aligns = [center_align, center_align, center_align, left_align, left_align,
+                  center_align, center_align, left_align, center_align, left_align, left_align]
+
+        for col_idx, (val, aln) in enumerate(zip(values, aligns), 1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.alignment = aln
+            cell.border    = border
+            cell.fill      = row_fill
+
+        ws.row_dimensions[row].height = 40
+
+    # Summary sheet
+    ws2 = wb.create_sheet("Итоги")
+    ws2.column_dimensions["A"].width = 35
+    ws2.column_dimensions["B"].width = 12
+
+    h1 = ws2.cell(row=1, column=1, value="Категория")
+    h2 = ws2.cell(row=1, column=2, value="Количество")
+    for c in [h1, h2]:
+        c.font      = header_font
+        c.fill      = header_fill
+        c.alignment = center_align
+        c.border    = border
+
+    type_counts = {}
+    for aid, ap in appeal_list:
+        t = ap.get("appeal_type", "—")
+        type_counts[t] = type_counts.get(t, 0) + 1
+
+    for r, (t, cnt) in enumerate(sorted(type_counts.items()), 2):
+        ws2.cell(row=r, column=1, value=t).border   = border
+        ws2.cell(row=r, column=2, value=cnt).border = border
+        ws2.cell(row=r, column=2).alignment = center_align
+
+    total_row = len(type_counts) + 2
+    tc = ws2.cell(row=total_row, column=1, value="ИТОГО")
+    vc = ws2.cell(row=total_row, column=2, value=len(appeal_list))
+    for c in [tc, vc]:
+        c.font   = Font(bold=True)
+        c.border = border
+    vc.alignment = center_align
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+async def on_report_command(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if not is_admin(uid):
+        return
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📅 Отчёт за сегодня", callback_data="report_today")],
+        [InlineKeyboardButton("📊 Полный отчёт",     callback_data="report_all")],
+    ])
+    await update.message.reply_text("Выберите тип отчёта:", reply_markup=kb)
+
+
+async def on_report_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    if not is_admin(q.from_user.id):
+        await q.answer("Нет доступа", show_alert=True)
+        return
+    await q.answer()
+    await q.edit_message_reply_markup(reply_markup=None)
+
+    today_str = date.today().strftime("%d.%m.%Y")
+    if q.data == "report_today":
+        filtered = [(aid, ap) for aid, ap in appeals_db.items()
+                    if ap.get("date", "").startswith(today_str)]
+        filename = "report_today_" + today_str.replace(".", "-") + ".xlsx"
+        caption  = "📅 Отчёт за сегодня (" + today_str + "): " + str(len(filtered)) + " обращений"
+    else:
+        filtered = list(appeals_db.items())
+        filename = "report_full_" + today_str.replace(".", "-") + ".xlsx"
+        caption  = "📊 Полный отчёт: " + str(len(filtered)) + " обращений"
+
+    if not filtered:
+        await q.message.reply_text("Обращений не найдено.")
+        return
+
+    await q.message.reply_text("⏳ Формирую Excel файл...")
+    buf = build_excel(filtered)
+    await ctx.bot.send_document(
+        chat_id=q.from_user.id,
+        document=buf,
+        filename=filename,
+        caption=caption,
+    )
+
 async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
     logger.error("Error:", exc_info=ctx.error)
 
@@ -584,6 +753,8 @@ def main():
         filters.TEXT & ~filters.COMMAND & admin_filter,
         on_admin_message
     ), group=1)
+    app.add_handler(CommandHandler("report", on_report_command))
+    app.add_handler(CallbackQueryHandler(on_report_callback, pattern="^report_"))
     app.add_error_handler(on_error)
     logger.info("Bot running...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
