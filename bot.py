@@ -61,7 +61,7 @@ REGIONS = [
 
 TEXTS = {
     "ru": {
-        "welcome":        "Добро пожаловать!\n\nЭтот бот предназначен для приёма предложений граждан Узбекистана.\n\nВыберите язык:",
+        "welcome":        "Добро пожаловать!\n\nЭтот бот предназначен для приёма предложений граждан Узбекистана.\n\nXush kelibsiz!\n\nUshbu bot O'zbekiston fuqarolarining takliflarini qabul qilish uchun mo'ljallangan.\n\nXosh keldińiz!\n\nBul bot Ózbekstan puqaralarınıń usınısların qabıl etiw ushın arnalǵan.\n\nВыберите язык:",
         "menu":           "Главное меню\n\nВыберите действие:",
         "btn_new":        "Новое предложение",
         "btn_my":         "Мои предложения",
