@@ -1,3 +1,6 @@
+Конечно! Я заменил все слова, связанные с «обращением» (обращение/murojaat/murajaat), на «предложение» (предложение/taklif/usınıs) для всех трёх языков во всём коде (в текстах бота, кнопках, Excel-отчетах и админ-панели).
+Вот готовый обновленный код:
+```python
 import os
 import io
 import logging
@@ -53,128 +56,128 @@ REGIONS = [
 
 TEXTS = {
     "ru": {
-        "welcome":        "Добро пожаловать!\n\nЭтот бот предназначен для приёма обращений граждан Узбекистана.\n\nВыберите язык:",
+        "welcome":        "Добро пожаловать!\n\nЭтот бот предназначен для приёма предложений граждан Узбекистана.\n\nВыберите язык:",
         "menu":           "Главное меню\n\nВыберите действие:",
-        "btn_new":        "Новое обращение",
-        "btn_my":         "Мои обращения",
+        "btn_new":        "Новое предложение",
+        "btn_my":         "Мои предложения",
         "btn_rules":      "Правила",
         "btn_lang":       "Сменить язык",
         "btn_contacts":   "Контакты",
         "contacts_text":  "📞 Контактные данные\n\nЕсли у вас есть какие-либо вопросы — обратитесь к " + CONTACT_USERNAME,
-        "choose_type":    "Выберите тип обращения:",
+        "choose_type":    "Выберите тип предложения:",
         "choose_contact": "Хотите оставить свой номер телефона?\n\nВнимание: Если останетесь анонимным — мы не сможем связаться с вами.",
         "share_phone":    "📱 Поделиться номером",
         "stay_anon":      "🙈 Остаться анонимным",
-        "anon_warning":   "Вы выбрали анонимность.\nОбращение будет передано, но мы не сможем связаться с вами.",
+        "anon_warning":   "Вы выбрали анонимность.\nПредложение будет передано, но мы не сможем связаться с вами.",
         "choose_region":  "Выберите ваш регион:",
-        "send_appeal":    "Опишите ваше обращение\n\nНапишите текст (можно несколько сообщений подряд).\nФото/видео — отправьте по отдельности.\n\nКогда закончите — нажмите кнопку ниже.",
-        "submit_btn":     "Отправить обращение",
+        "send_appeal":    "Опишите ваше предложение\n\nНапишите текст (можно несколько сообщений подряд).\nФото/видео — отправьте по отдельности.\n\nКогда закончите — нажмите кнопку ниже.",
+        "submit_btn":     "Отправить предложение",
         "cancel_btn":     "Отмена",
-        "thank_you":      "Ваше обращение передано!\n\nСпасибо за доверие. Мы обязательно рассмотрим ваше обращение.\n\nВы можете следить за ответами в разделе Мои обращения.",
-        "media_received": "Файл получен. Добавьте ещё или нажмите Отправить обращение.",
-        "text_added":     "Текст добавлен. Продолжайте или нажмите Отправить обращение.",
-        "admin_header":   "НОВОЕ ОБРАЩЕНИЕ",
+        "thank_you":      "Ваше предложение передано!\n\nСпасибо за доверие. Мы обязательно рассмотрим ваше предложение.\n\nВы можете следить за ответами в разделе Мои предложения.",
+        "media_received": "Файл получен. Добавьте ещё или нажмите Отправить предложение.",
+        "text_added":     "Текст добавлен. Продолжайте или нажмите Отправить предложение.",
+        "admin_header":   "НОВОЕ ПРЕДЛОЖЕНИЕ",
         "type_label":     "Тип",
         "region_label":   "Регион",
         "contact_label":  "Контакт",
         "anon_label":     "Анонимный",
-        "message_label":  "Обращение",
+        "message_label":  "Предложение",
         "no_message":     "(только медиафайлы)",
-        "no_appeals":     "У вас пока нет обращений.",
-        "your_appeals":   "Ваши обращения:",
+        "no_appeals":     "У вас пока нет предложений.",
+        "your_appeals":   "Ваши предложения:",
         "no_replies":     "Ответов пока нет.",
         "reply_label":    "Ответ",
-        "reply_received": "Ответ на ваше обращение #{id}:\n\n{reply}",
-        "rules":          "ПРАВИЛА ИСПОЛЬЗОВАНИЯ БОТА\n\n1. Запрещено использовать нецензурные и оскорбительные слова.\n2. Запрещено отправлять спам, рекламу, угрозы.\n3. Запрещено отправлять ложные сведения.\n4. Запрещено злоупотреблять ботом.\n\nКАК ПОЛЬЗОВАТЬСЯ:\n- Нажмите Новое обращение\n- Выберите тип обращения\n- Выберите контакт или анонимность\n- Выберите регион\n- Опишите ситуацию, прикрепите фото/видео\n- Нажмите Отправить обращение\n\nНарушение правил влечёт блокировку.",
+        "reply_received": "Ответ на ваше предложение #{id}:\n\n{reply}",
+        "rules":          "ПРАВИЛА ИСПОЛЬЗОВАНИЯ БОТА\n\n1. Запрещено использовать нецензурные и оскорбительные слова.\n2. Запрещено отправлять спам, рекламу, угрозы.\n3. Запрещено отправлять ложные сведения.\n4. Запрещено злоупотреблять ботом.\n\nКАК ПОЛЬЗОВАТЬСЯ:\n- Нажмите Новое предложение\n- Выберите тип предложения\n- Выберите контакт или анонимность\n- Выберите регион\n- Опишите ситуацию, прикрепите фото/видео\n- Нажмите Отправить предложение\n\nНарушение правил влечёт блокировку.",
         "blocked_perm":   "Вы заблокированы навсегда за нарушение правил.",
         "blocked_temp":   "Вы заблокированы до {until} за нарушение правил.",
-        "appeal_id":      "ID обращения",
+        "appeal_id":      "ID предложения",
         "phone_prompt":   "Нажмите кнопку ниже чтобы поделиться номером:",
-        "reply_prompt":   "Напишите ответ на обращение #{aid}:",
+        "reply_prompt":   "Напишите ответ на предложение #{aid}:",
         "reply_sent":     "Ответ отправлен (#{aid}).",
         "reply_fail":     "Не удалось отправить ответ.",
     },
     "uz": {
-        "welcome":        "Xush kelibsiz!\n\nBu bot O'zbekiston fuqarolarining murojaatlarini qabul qilish uchun.\n\nTilni tanlang:",
+        "welcome":        "Xush kelibsiz!\n\nBu bot O'zbekiston fuqarolarining takliflarini qabul qilish uchun.\n\nTilni tanlang:",
         "menu":           "Asosiy menyu\n\nAmalni tanlang:",
-        "btn_new":        "Yangi murojaat",
-        "btn_my":         "Mening murojaatlarim",
+        "btn_new":        "Yangi taklif",
+        "btn_my":         "Mening takliflarim",
         "btn_rules":      "Qoidalar",
         "btn_lang":       "Tilni o'zgartirish",
         "btn_contacts":   "Kontaktlar",
         "contacts_text":  "📞 Kontakt ma'lumotlari\n\nSavollaringiz bo'lsa — " + CONTACT_USERNAME + " ga murojaat qiling",
-        "choose_type":    "Murojaat turini tanlang:",
+        "choose_type":    "Taklif turini tanlang:",
         "choose_contact": "Telefon raqamingizni qoldirmoqchimisiz?\n\nDiqqat: Anonim qolsangiz — biz siz bilan bog'lana olmaymiz.",
         "share_phone":    "📱 Raqamni ulashish",
         "stay_anon":      "🙈 Anonim qolish",
-        "anon_warning":   "Siz anonimlikni tanladingiz.\nMurojaat uzatiladi, lekin biz siz bilan bog'lana olmaymiz.",
+        "anon_warning":   "Siz anonimlikni tanladingiz.\nTaklif uzatiladi, lekin biz siz bilan bog'lana olmaymiz.",
         "choose_region":  "Viloyatingizni tanlang:",
-        "send_appeal":    "Murojaatingizni yozing\n\nMatn yozing (bir nechta xabar yuborishingiz mumkin).\nRasm/video — alohida yuboring.\n\nTayyor bo'lgach — quyidagi tugmani bosing.",
-        "submit_btn":     "Murojaatni yuborish",
+        "send_appeal":    "Taklifingizni yozing\n\nMatn yozing (bir nechta xabar yuborishingiz mumkin).\nRasm/video — alohida yuboring.\n\nTayyor bo'lgach — quyidagi tugmani bosing.",
+        "submit_btn":     "Taklifni yuborish",
         "cancel_btn":     "Bekor qilish",
-        "thank_you":      "Murojaatingiz qabul qilindi!\n\nKatta rahmat. Murojaatingizni ko'rib chiqamiz.\n\nMening murojaatlarim bo'limida javoblarni kuzatishingiz mumkin.",
-        "media_received": "Fayl qabul qilindi. Yana qo'shing yoki Murojaatni yuborish ni bosing.",
-        "text_added":     "Matn qo'shildi. Davom eting yoki Murojaatni yuborish ni bosing.",
-        "admin_header":   "YANGI MUROJAAT",
+        "thank_you":      "Taklifingiz qabul qilindi!\n\nKatta rahmat. Taklifingizni ko'rib chiqamiz.\n\nMening takliflarim bo'limida javoblarni kuzatishingiz mumkin.",
+        "media_received": "Fayl qabul qilindi. Yana qo'shing yoki Taklifni yuborish ni bosing.",
+        "text_added":     "Matn qo'shildi. Davom eting yoki Taklifni yuborish ni bosing.",
+        "admin_header":   "YANGI TAKLIF",
         "type_label":     "Tur",
         "region_label":   "Viloyat",
         "contact_label":  "Kontakt",
         "anon_label":     "Anonim",
-        "message_label":  "Murojaat",
+        "message_label":  "Taklif",
         "no_message":     "(faqat media fayllar)",
-        "no_appeals":     "Sizda hali murojaatlar yo'q.",
-        "your_appeals":   "Sizning murojaatlaringiz:",
+        "no_appeals":     "Sizda hali takliflar yo'q.",
+        "your_appeals":   "Sizning takliflaringiz:",
         "no_replies":     "Hali javob yo'q.",
         "reply_label":    "Javob",
-        "reply_received": "#{id}-murojaat javobingiz:\n\n{reply}",
-        "rules":          "BOTDAN FOYDALANISH QOIDALARI\n\n1. Taqiqlangan: so'kinish, haqoratli so'zlar.\n2. Taqiqlangan: spam, reklama, tahdidlar.\n3. Taqiqlangan: yolg'on ma'lumot.\n4. Taqiqlangan: botni suiiste'mol qilish.\n\nQANDAY FOYDALANISH:\n- Yangi murojaat tugmasini bosing\n- Murojaat turini tanlang\n- Raqam qoldiring yoki anonim qoling\n- Viloyatni tanlang\n- Muammoni tasvirlang\n- Murojaatni yuborish tugmasini bosing\n\nQoidalarni buzish bloklashga olib keladi.",
+        "reply_received": "#{id}-taklif javobingiz:\n\n{reply}",
+        "rules":          "BOTDAN FOYDALANISH QOIDALARI\n\n1. Taqiqlangan: so'kinish, haqoratli so'zlar.\n2. Taqiqlangan: spam, reklama, tahdidlar.\n3. Taqiqlangan: yolg'on ma'lumot.\n4. Taqiqlangan: botni suiiste'mol qilish.\n\nQANDAY FOYDALANISH:\n- Yangi taklif tugmasini bosing\n- Taklif turini tanlang\n- Raqam qoldiring yoki anonim qoling\n- Viloyatni tanlang\n- Muammoni tasvirlang\n- Taklifni yuborish tugmasini bosing\n\nQoidalarni buzish bloklashga olib keladi.",
         "blocked_perm":   "Siz qoidalarni buzganingiz uchun doimiy ravishda bloklandingiz.",
         "blocked_temp":   "Siz {until} gacha bloklangansiz.",
-        "appeal_id":      "Murojaat ID",
+        "appeal_id":      "Taklif ID",
         "phone_prompt":   "Raqamingizni ulashish uchun quyidagi tugmani bosing:",
-        "reply_prompt":   "#{aid}-murojaat uchun javob yozing:",
+        "reply_prompt":   "#{aid}-taklif uchun javob yozing:",
         "reply_sent":     "Javob yuborildi (#{aid}).",
         "reply_fail":     "Javob yuborib bo'lmadi.",
     },
     "kk": {
-        "welcome":        "Xosh keldiniz!\n\nBul bot O'zbekistan puqaralarinin murajaatların qabıl etiw ushin.\n\nTildi tanlang:",
+        "welcome":        "Xosh keldiniz!\n\nBul bot O'zbekistan puqaralarinin usınısların qabıl etiw ushin.\n\nTildi tanlang:",
         "menu":           "Bas menyu\n\nAmaldı tanlang:",
-        "btn_new":        "Jana murajaat",
-        "btn_my":         "Menin murajaatlarım",
+        "btn_new":        "Jana usınıs",
+        "btn_my":         "Menin usınıslarım",
         "btn_rules":      "Qaydalar",
         "btn_lang":       "Tildi ozgertiw",
         "btn_contacts":   "Kontaktlar",
         "contacts_text":  "📞 Baylanıs maglıwmatları\n\nSawallarınız bolsa — " + CONTACT_USERNAME + " ge murajaat eting",
-        "choose_type":    "Murajaat turın tanlang:",
+        "choose_type":    "Usınıs turın tanlang:",
         "choose_contact": "Telefon nomernizdi qaldırganız keleme?\n\nDıqqat: Anonim qalsanız — biz siz benen baylanısa almaymız.",
         "share_phone":    "📱 Nomerni ulasıw",
         "stay_anon":      "🙈 Anonim qalıw",
-        "anon_warning":   "Siz anonimlikti tanladınız.\nMurajaat jetkiziledi, biraq biz siz benen baylanısa almaymız.",
+        "anon_warning":   "Siz anonimlikti tanladınız.\nUsınıs jetkiziledi, biraq biz siz benen baylanısa almaymız.",
         "choose_region":  "Regionınızdı tanlang:",
-        "send_appeal":    "Murajaatınızdı jazın\n\nMatn jazın (birneshe xabar jibere alasız).\nSuwret/video — boleksha jiberin.\n\nTayar bolganda — to'mendegi tugmasin basın.",
-        "submit_btn":     "Murajaat jiberiw",
+        "send_appeal":    "Usınısınızdı jazın\n\nMatn jazın (birneshe xabar jibere alasız).\nSuwret/video — boleksha jiberin.\n\nTayar bolganda — to'mendegi tugmasin basın.",
+        "submit_btn":     "Usınıs jiberiw",
         "cancel_btn":     "Biykar etiw",
-        "thank_you":      "Murajaatınız qabıl etildi!\n\nKo'p rahmet. Murajaatınızdı ko'rib shıgamız.\n\nMenin murajaatlarım boliminde jawaplardı kore alasız.",
-        "media_received": "Fayl qabıl etildi. Yana qosın yaki Murajaat jiberiw ni basın.",
-        "text_added":     "Matn qosıldı. Davom etin yaki Murajaat jiberiw ni basın.",
-        "admin_header":   "JANA MURAJAAT",
+        "thank_you":      "Usınısınız qabıl etildi!\n\nKo'p rahmet. Usınısınızdı ko'rib shıgamız.\n\nMenin usınıslarım boliminde jawaplardı kore alasız.",
+        "media_received": "Fayl qabıl etildi. Yana qosın yaki Usınıs jiberiw ni basın.",
+        "text_added":     "Matn qosıldı. Davom etin yaki Usınıs jiberiw ni basın.",
+        "admin_header":   "JANA USINIS",
         "type_label":     "Tur",
         "region_label":   "Region",
         "contact_label":  "Baylanıs",
         "anon_label":     "Anonim",
-        "message_label":  "Murajaat",
+        "message_label":  "Usınıs",
         "no_message":     "(tek media fayllar)",
-        "no_appeals":     "Sizde halirshe murajaatlar joq.",
-        "your_appeals":   "Sizin murajaatlarınız:",
+        "no_appeals":     "Sizde halirshe usınıslar joq.",
+        "your_appeals":   "Sizin usınıslarınız:",
         "no_replies":     "Halirshe jawap joq.",
         "reply_label":    "Jawap",
-        "reply_received": "#{id}-murajaat jawabınız:\n\n{reply}",
-        "rules":          "BOTTAN PAYDALANIW QAYDALARI\n\n1. Tıyım: so'kinish, haqoretli so'zler.\n2. Tıyım: spam, reklama, qorqıtıwlar.\n3. Tıyım: jalgan maglıwmat.\n4. Tıyım: bottı qıyanetlep paydalanıw.\n\nQALAYINSHA PAYDALANIW:\n- Jana murajaat tugmasin basın\n- Murajaat turın tanlang\n- Nomer qaldırın yaki anonim qalın\n- Regionınızdı tanlang\n- Maseleni tasvirlen\n- Murajaat jiberiw tugmasin basın\n\nQaydaların bozıw bloklashga alıp keledi.",
+        "reply_received": "#{id}-usınıs jawabınız:\n\n{reply}",
+        "rules":          "BOTTAN PAYDALANIW QAYDALARI\n\n1. Tıyım: so'kinish, haqoretli so'zler.\n2. Tıyım: spam, reklama, qorqıtıwlar.\n3. Tıyım: jalgan maglıwmat.\n4. Tıyım: bottı qıyanetlep paydalanıw.\n\nQALAYINSHA PAYDALANIW:\n- Jana usınıs tugmasin basın\n- Usınıs turın tanlang\n- Nomer qaldırın yaki anonim qalın\n- Regionınızdı tanlang\n- Maseleni tasvirlen\n- Usınıs jiberiw tugmasin basın\n\nQaydaların bozıw bloklashga alıp keledi.",
         "blocked_perm":   "Siz qaydaların bozganınız ushin mangi bloclandınız.",
         "blocked_temp":   "Siz {until} ga shekem bloclandınız.",
-        "appeal_id":      "Murajaat ID",
+        "appeal_id":      "Usınıs ID",
         "phone_prompt":   "Nomernizdi ulasıw ushin to'mendegi tugmasin basın:",
-        "reply_prompt":   "#{aid}-murajaat ushin jawap jazın:",
+        "reply_prompt":   "#{aid}-usınıs ushin jawap jazın:",
         "reply_sent":     "Jawap jiberildi (#{aid}).",
         "reply_fail":     "Jawap jiberib bolmadı.",
     },
@@ -249,7 +252,7 @@ def submit_kb(lang):
 
 def admin_kb(aid, uid):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📝 Ответить на обращение", callback_data="reply_" + str(aid) + "_" + str(uid))],
+        [InlineKeyboardButton("📝 Ответить на предложение", callback_data="reply_" + str(aid) + "_" + str(uid))],
         [InlineKeyboardButton("⏱ 1 час",    callback_data="block_" + str(uid) + "_1h"),
          InlineKeyboardButton("⏱ 3 часа",   callback_data="block_" + str(uid) + "_3h")],
         [InlineKeyboardButton("📅 1 день",   callback_data="block_" + str(uid) + "_1d"),
@@ -560,7 +563,7 @@ def build_excel(appeal_list, title="Отчёт"):
     """Build Excel file from list of appeals and return as BytesIO."""
     wb = Workbook()
     ws = wb.active
-    ws.title = "Обращения"
+    ws.title = "Предложения"
 
     # Styles
     header_font  = Font(bold=True, color="FFFFFF", size=11)
@@ -571,9 +574,9 @@ def build_excel(appeal_list, title="Отчёт"):
     border       = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     headers = [
-        "№", "ID", "Дата", "Тип обращения", "Регион",
+        "№", "ID", "Дата", "Тип предложения", "Регион",
         "Контакт", "Язык", "Пользователь", "Telegram ID",
-        "Текст обращения", "Ответы"
+        "Текст предложения", "Ответы"
     ]
     col_widths = [5, 7, 18, 28, 30, 18, 12, 22, 14, 50, 40]
 
@@ -700,14 +703,14 @@ async def on_report_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         filtered = [(aid, ap) for aid, ap in appeals_db.items()
                     if ap.get("date", "").startswith(today_str)]
         filename = "report_today_" + today_str.replace(".", "-") + ".xlsx"
-        caption  = "📅 Отчёт за сегодня (" + today_str + "): " + str(len(filtered)) + " обращений"
+        caption  = "📅 Отчёт за сегодня (" + today_str + "): " + str(len(filtered)) + " предложений"
     else:
         filtered = list(appeals_db.items())
         filename = "report_full_" + today_str.replace(".", "-") + ".xlsx"
-        caption  = "📊 Полный отчёт: " + str(len(filtered)) + " обращений"
+        caption  = "📊 Полный отчёт: " + str(len(filtered)) + " предложений"
 
     if not filtered:
-        await q.message.reply_text("Обращений не найдено.")
+        await q.message.reply_text("Предложений не найдено.")
         return
 
     await q.message.reply_text("⏳ Формирую Excel файл...")
@@ -762,3 +765,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+```
