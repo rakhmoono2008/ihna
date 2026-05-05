@@ -1,9 +1,8 @@
-
 import os
 import io
 import logging
 import time
-from datetime import datetime, date
+from datetime import datetime, timezone, timedelta
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -19,10 +18,18 @@ from telegram.ext import (
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- НАСТРОЙКИ БОТА ---
 BOT_TOKEN  = os.environ.get("BOT_TOKEN",  "8239199632:AAGF3i4Qsswck4WEhaeLqHNvGBgE1bb2uVw")
 ADMIN_ID   = int(os.environ.get("ADMIN_ID",   "0"))
 ADMIN_ID_2 = int(os.environ.get("ADMIN_ID_2", "0"))
 GROUP_ID   = int(os.environ.get("GROUP_ID",   "0"))
+
+# Название видеофайла, который лежит в той же папке, что и скрипт
+WELCOME_VIDEO_PATH = "video.mp4" 
+
+# Часовой пояс Ташкента (UTC+5)
+TASHKENT_TZ = timezone(timedelta(hours=5))
+# ----------------------
 
 LANGUAGE, MENU, APPEAL_TYPE, CONTACT, REGION, APPEAL = range(6)
 
@@ -198,7 +205,8 @@ def check_block(uid):
     if until == 0:
         return True, "permanent"
     if time.time() < until:
-        return True, datetime.fromtimestamp(until).strftime("%d.%m.%Y %H:%M")
+        # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ДЛЯ БЛОКИРОВОК
+        return True, datetime.fromtimestamp(until, TASHKENT_TZ).strftime("%d.%m.%Y %H:%M")
     del blocked_users[uid]
     return False, ""
 
@@ -292,7 +300,23 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg)
         return ConversationHandler.END
     ctx.user_data.clear()
-    await update.message.reply_text(TEXTS["ru"]["welcome"], reply_markup=lang_kb())
+
+    # ОТПРАВКА ВИДЕО ПРИ СТАРТЕ
+    try:
+        if os.path.exists(WELCOME_VIDEO_PATH):
+            with open(WELCOME_VIDEO_PATH, "rb") as video_file:
+                await update.message.reply_video(
+                    video=video_file,
+                    caption=TEXTS["ru"]["welcome"],
+                    reply_markup=lang_kb()
+                )
+        else:
+            # Если видео нет, просто отправляем текст
+            await update.message.reply_text(TEXTS["ru"]["welcome"], reply_markup=lang_kb())
+    except Exception as e:
+        logger.error(f"Ошибка при отправке видео: {e}")
+        await update.message.reply_text(TEXTS["ru"]["welcome"], reply_markup=lang_kb())
+
     return LANGUAGE
 
 
@@ -451,7 +475,9 @@ async def do_submit(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     media_ids   = ctx.user_data.get("media_ids", [])
     user        = update.effective_user
     aid         = new_aid()
-    date_str    = datetime.now().strftime("%d.%m.%Y %H:%M")
+    
+    # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ПРИ СОХРАНЕНИИ ДАТЫ
+    date_str    = datetime.now(TASHKENT_TZ).strftime("%d.%m.%Y %H:%M")
 
     appeals_db[aid] = {
         "user_id": user.id, "user_name": user.full_name, "region": region, "contact": contact,
@@ -517,7 +543,8 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         else:
             until_ts = time.time() + secs
             blocked_users[uid] = until_ts
-            until_str = datetime.fromtimestamp(until_ts).strftime("%d.%m.%Y %H:%M")
+            # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ДЛЯ ОТОБРАЖЕНИЯ СРОКА
+            until_str = datetime.fromtimestamp(until_ts, TASHKENT_TZ).strftime("%d.%m.%Y %H:%M")
         user_lang = user_languages.get(uid, "ru")
         try:
             msg = T(user_lang, "blocked_perm") if secs == 0 else T(user_lang, "blocked_temp").format(until=until_str)
@@ -553,8 +580,6 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error("Reply send failed: " + str(e))
         await update.message.reply_text(T("ru", "reply_fail"))
-
-
 
 
 def build_excel(appeal_list, title="Отчёт"):
@@ -696,7 +721,9 @@ async def on_report_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.answer()
     await q.edit_message_reply_markup(reply_markup=None)
 
-    today_str = date.today().strftime("%d.%m.%Y")
+    # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ДЛЯ ОТЧЕТА ПО ТЕКУЩЕМУ ДНЮ
+    today_str = datetime.now(TASHKENT_TZ).strftime("%d.%m.%Y")
+    
     if q.data == "report_today":
         filtered = [(aid, ap) for aid, ap in appeals_db.items()
                     if ap.get("date", "").startswith(today_str)]
@@ -763,4 +790,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
