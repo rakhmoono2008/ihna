@@ -24,8 +24,7 @@ ADMIN_ID   = int(os.environ.get("ADMIN_ID",   "0"))
 ADMIN_ID_2 = int(os.environ.get("ADMIN_ID_2", "0"))
 GROUP_ID   = int(os.environ.get("GROUP_ID",   "0"))
 
-# Название видеофайла, который лежит в той же папке, что и скрипт
-WELCOME_VIDEO_PATH = "video.mp4" 
+WELCOME_VIDEO_PATH = "video.mp4"
 
 # Часовой пояс Ташкента (UTC+5)
 TASHKENT_TZ = timezone(timedelta(hours=5))
@@ -61,7 +60,12 @@ REGIONS = [
 
 TEXTS = {
     "ru": {
-        "welcome":        "Добро пожаловать!\n\nЭтот бот предназначен для приёма предложений граждан Узбекистана.\n\nXush kelibsiz!\n\nUshbu bot O'zbekiston fuqarolarining takliflarini qabul qilish uchun mo'ljallangan.\n\nXosh keldińiz!\n\nBul bot Ózbekstan puqaralarınıń usınısların qabıl etiw ushın arnalǵan.\n\nВыберите язык:",
+        "welcome": (
+            "🌟 Sizning fikringiz muhim! Taklif va g'oyalaringizni bu yerda bildiring.\n\n"
+            "🌟 Sизиң pikiriñiz áhmijetli! Usınıs hám ideiyalarıñızdı bul jerde bildiriñ.\n\n"
+            "🌟 Ваше мнение важно! Оставляйте свои предложения и идеи здесь.\n\n"
+            "Tilni tanlang / Tildi tanlang / Выберите язык:"
+        ),
         "menu":           "Главное меню\n\nВыберите действие:",
         "btn_new":        "Новое предложение",
         "btn_my":         "Мои предложения",
@@ -103,7 +107,12 @@ TEXTS = {
         "reply_fail":     "Не удалось отправить ответ.",
     },
     "uz": {
-        "welcome":        "Xush kelibsiz!\n\nBu bot O'zbekiston fuqarolarining takliflarini qabul qilish uchun.\n\nTilni tanlang:",
+        "welcome": (
+            "🌟 Sizning fikringiz muhim! Taklif va g'oyalaringizni bu yerda bildiring.\n\n"
+            "🌟 Sизиң pikiriñiz áhmijetli! Usınıs hám ideiyalarıñızdı bul jerde bildiriñ.\n\n"
+            "🌟 Ваше мнение важно! Оставляйте свои предложения и идеи здесь.\n\n"
+            "Tilni tanlang / Tildi tanlang / Выберите язык:"
+        ),
         "menu":           "Asosiy menyu\n\nAmalni tanlang:",
         "btn_new":        "Yangi taklif",
         "btn_my":         "Mening takliflarim",
@@ -145,7 +154,12 @@ TEXTS = {
         "reply_fail":     "Javob yuborib bo'lmadi.",
     },
     "kk": {
-        "welcome":        "Xosh keldiniz!\n\nBul bot O'zbekistan puqaralarinin usınısların qabıl etiw ushin.\n\nTildi tanlang:",
+        "welcome": (
+            "🌟 Sizning fikringiz muhim! Taklif va g'oyalaringizni bu yerda bildiring.\n\n"
+            "🌟 Sизиң pikiriñiz áhmijetli! Usınıs hám ideiyalarıñızdı bul jerde bildiriñ.\n\n"
+            "🌟 Ваше мнение важно! Оставляйте свои предложения и идеи здесь.\n\n"
+            "Tilni tanlang / Tildi tanlang / Выберите язык:"
+        ),
         "menu":           "Bas menyu\n\nAmaldı tanlang:",
         "btn_new":        "Jana usınıs",
         "btn_my":         "Menin usınıslarım",
@@ -205,7 +219,6 @@ def check_block(uid):
     if until == 0:
         return True, "permanent"
     if time.time() < until:
-        # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ДЛЯ БЛОКИРОВОК
         return True, datetime.fromtimestamp(until, TASHKENT_TZ).strftime("%d.%m.%Y %H:%M")
     del blocked_users[uid]
     return False, ""
@@ -217,9 +230,9 @@ def new_aid():
 
 def lang_kb():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"),
-         InlineKeyboardButton("🇺🇿 O'zbek",  callback_data="lang_uz")],
-        [InlineKeyboardButton("🏳️ Qaraqalpaqsha", callback_data="lang_kk")],
+        [InlineKeyboardButton("🇺🇿 O'zbek",        callback_data="lang_uz"),
+         InlineKeyboardButton("🏳️ Qaraqalpaqsha", callback_data="lang_kk")],
+        [InlineKeyboardButton("🇷🇺 Русский",       callback_data="lang_ru")],
     ])
 
 def menu_kb(lang):
@@ -301,7 +314,6 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
     ctx.user_data.clear()
 
-    # ОТПРАВКА ВИДЕО ПРИ СТАРТЕ
     try:
         if os.path.exists(WELCOME_VIDEO_PATH):
             with open(WELCOME_VIDEO_PATH, "rb") as video_file:
@@ -311,7 +323,6 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     reply_markup=lang_kb()
                 )
         else:
-            # Если видео нет, просто отправляем текст
             await update.message.reply_text(TEXTS["ru"]["welcome"], reply_markup=lang_kb())
     except Exception as e:
         logger.error(f"Ошибка при отправке видео: {e}")
@@ -475,8 +486,6 @@ async def do_submit(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     media_ids   = ctx.user_data.get("media_ids", [])
     user        = update.effective_user
     aid         = new_aid()
-    
-    # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ПРИ СОХРАНЕНИИ ДАТЫ
     date_str    = datetime.now(TASHKENT_TZ).strftime("%d.%m.%Y %H:%M")
 
     appeals_db[aid] = {
@@ -543,7 +552,6 @@ async def on_admin_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         else:
             until_ts = time.time() + secs
             blocked_users[uid] = until_ts
-            # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ДЛЯ ОТОБРАЖЕНИЯ СРОКА
             until_str = datetime.fromtimestamp(until_ts, TASHKENT_TZ).strftime("%d.%m.%Y %H:%M")
         user_lang = user_languages.get(uid, "ru")
         try:
@@ -583,12 +591,10 @@ async def on_admin_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 def build_excel(appeal_list, title="Отчёт"):
-    """Build Excel file from list of appeals and return as BytesIO."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Предложения"
 
-    # Styles
     header_font  = Font(bold=True, color="FFFFFF", size=11)
     header_fill  = PatternFill("solid", fgColor="1F4E79")
     center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -603,7 +609,6 @@ def build_excel(appeal_list, title="Отчёт"):
     ]
     col_widths = [5, 7, 18, 28, 30, 18, 12, 22, 14, 50, 40]
 
-    # Header row
     for col_idx, (h, w) in enumerate(zip(headers, col_widths), 1):
         cell = ws.cell(row=1, column=col_idx, value=h)
         cell.font        = header_font
@@ -614,7 +619,6 @@ def build_excel(appeal_list, title="Отчёт"):
 
     ws.row_dimensions[1].height = 22
 
-    # Type colors
     type_colors = {
         "Цифровизация":          "DDEEFF",
         "Стимулирование":        "DDFFDD",
@@ -633,7 +637,6 @@ def build_excel(appeal_list, title="Отчёт"):
         replies = "; ".join(ap.get("replies", [])) if ap.get("replies") else "—"
         atype   = ap.get("appeal_type", "—")
 
-        # Pick row fill based on type keyword
         fill_color = "FFFFFF"
         for keyword, color in type_colors.items():
             if keyword.lower() in atype.lower():
@@ -665,7 +668,6 @@ def build_excel(appeal_list, title="Отчёт"):
 
         ws.row_dimensions[row].height = 40
 
-    # Summary sheet
     ws2 = wb.create_sheet("Итоги")
     ws2.column_dimensions["A"].width = 35
     ws2.column_dimensions["B"].width = 12
@@ -721,9 +723,8 @@ async def on_report_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.answer()
     await q.edit_message_reply_markup(reply_markup=None)
 
-    # ИСПОЛЬЗУЕМ ВРЕМЯ ТАШКЕНТА ДЛЯ ОТЧЕТА ПО ТЕКУЩЕМУ ДНЮ
     today_str = datetime.now(TASHKENT_TZ).strftime("%d.%m.%Y")
-    
+
     if q.data == "report_today":
         filtered = [(aid, ap) for aid, ap in appeals_db.items()
                     if ap.get("date", "").startswith(today_str)]
